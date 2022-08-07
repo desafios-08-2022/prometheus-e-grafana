@@ -1,0 +1,3 @@
+do_token = "token criado na console"
+k8s_name = "k8s-iniciativa"
+region   = "nyc1"

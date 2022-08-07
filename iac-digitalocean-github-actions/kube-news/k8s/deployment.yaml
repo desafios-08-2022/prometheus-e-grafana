@@ -1,0 +1,97 @@
+# Deployment do Postgree
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgre
+spec:
+  selector:
+    matchLabels:
+      app: postgre
+  template:
+    metadata:
+      labels:
+        app: postgre
+    spec:
+      containers:
+      - name: postgre
+        image: postgres:alpine3.16
+        env:
+        - name: POSTGRES_PASSWORD
+          value: "myPass"
+        - name: POSTGRES_USER
+          value: "myUser"
+        - name: POSTGRES_DB
+          value: "kubenews"
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 5432
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgre
+spec:
+  selector:
+    app: postgre
+  ports:
+  - port: 5432 ## porta usada pelo service
+    targetPort: 5432 ## porta do pod
+
+--- 
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubenews
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kubenews
+  template:
+    metadata:
+      labels:
+        app: kubenews
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/prot: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: kubenews
+        image: hernanisoares/kube-news:latest
+        env:
+        - name: DB_DATABASE
+          value: "kubenews"
+        - name: DB_USERNAME
+          value: "myUser"
+        - name: DB_PASSWORD
+          value: "myPass"
+        - name: DB_HOST
+          value: "postgre"
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubenews
+spec:
+  selector:
+    app: kubenews
+  ports:
+  - port: 80
+    targetPort: 8080
+    # nodePort: 30000
+  type: LoadBalancer
+
